@@ -6,5 +6,11 @@ setup(name='scrapper',
       install_requires=[
             'selenium',
             'webdriver_manager',
+            'pandas',
+            'numpy',
+            'requests',
+            'uuid'
+            
+            
       ]
        )
