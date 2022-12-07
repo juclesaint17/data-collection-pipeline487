@@ -277,7 +277,7 @@ The IkeaScrapper method called :
             
         return site_nav_list
 
-This method select all available navigation pages links and store them in a list.
+This method select all available navigations pages links and store them in a list.
 
 After implementing the code,we create a python file named main.py
 >from utils.Scrapper import Scrapper
@@ -290,7 +290,7 @@ if __name__== '__main__':
     time.sleep(5)
 
 This file is used to test the functionality of our project.
-Inside the main.py file, we import the Scrapper class from the utils folder and it to a variable call target, and call the accept_cookies() ethod from the Scrapper class to test the functionality of each method inside the class.
+Inside the main.py file, we import the Scrapper class from the utils folder and assign it to a variable call target, and call the accept_cookies() method from the Scrapper class to test the functionality of each method inside the class.
 
 
 
