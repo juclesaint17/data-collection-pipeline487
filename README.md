@@ -292,6 +292,137 @@ if __name__== '__main__':
 This file is used to test the functionality of our project.
 Inside the main.py file, we import the Scrapper class from the utils folder and assign it to a variable call target, and call the accept_cookies() method from the Scrapper class to test the functionality of each method inside the class.
 
+## Milestone 4:
+In this milestone we create and define functions tor retrieve products data and images from a single details page.As each page of Ikea website contains multiple webpages links for each product,we define a function to loop over all the links of the page and collect data and images for all the products available for the page.
+The function below download images from the pages and store them in a file.
+
+
+     def download_product_images(self,product_img_url, image_path):
+        '''
+        Function to download images in a webpage and save it to a local machine
+        Parameters:
+        ---------------
+        product_img_url: The url of the product image
+
+        product_path: The destination folder to save the image
+
+        '''
+        product_img = requests.get(product_img_url).content
+        
+        with open(image_path, 'wb') as retriever:
+
+            retriever.write(product_img)
+        print(image_path)
+        return image_path
+
+To collect data from the pages we define the function as shows below to loop through all webpages links, collect data and save them in a dictionary locally.
+
+
+     def save_file(
+        self, 
+        product_code,
+        product_data_dict, 
+        parent_dir, 
+        product_image_link,
+        count
+    ):
+        
+        '''
+        Within the parent directory,create a new folder and save data and download products images
+
+        Parameters:
+        ------------------------
+
+        product_code: the directory to store product with their unique ID.
+
+        product_data_dict: the product data to be store in json file format.
+
+        parent_dir: the path where the folder will be created.
+
+        product_image_link: the product image to be store in product_code subfolder
+
+        count: define the number of images uploaded into the images folder
+        '''
+
+        # created the date variable and assign it as image code name
+        date = datetime.now()
+        date_collected = date.strftime("%Y-%m-%d %H:%M:%S")
+        
+        if not os.path.exists(product_code):
+            
+            os.chdir(parent_dir)
+            time.sleep(1)
+            os.makedirs(f"{product_code}/images")
+    
+        with open(f"{product_code}/data.json", "w") as outfile:
+            
+            json.dump(product_data_dict, outfile, indent=4)
+            
+            self.download_product_images(product_image_link, f"{product_code}/images/{date_collected}_{product_code}_{count}.jpg")
+
+
+
+
+## Milestone 6:
+After implementing classes and methods to run the software,we create a test_scraper python file to test the functionality of the methods created.
+
+     
+
+     class ScrapperTestCase(unittest.TestCase):
+
+    def setUp(self):
+        self.ikea_scrapper = Scrapper()
+        
+
+    
+    def test_folder_creation(self):
+        print("CHECKING FOLDER CREATION")
+        path = '/home/juc-lesaint/Desktop/data-collection-pipeline487/'
+        folder = 'test_folder'
+        #scrapper_dir = Scrapper()
+        directory_check = self.ikea_scrapper.create_directory(path,folder)
+        expected_value = '/home/juc-lesaint/Desktop/data-collection-pipeline487/test_folder'
+        self.assertEqual(expected_value,directory_check)
+
+    def test_ikea_search_product(self):
+        print("CHECKING THE SEARCH BOX")
+        check_search_box = self.ikea_scrapper.search_product('Furniture',xpath='//input[@type="search"]')
+        expected_value = 'Furniture'
+        self.assertEqual(expected_value,check_search_box)
+
+    def test_visit_product_page(self):
+        check_page = self.ikea_scrapper.visit_product_page(prod_xpath='//*[@data-pub-id="6f52285d-c220-11ec-a3dd-0948e2821b2e"]')
+        expected_value = 'https://www.ikea.com/gb/en/rooms/living-room/'
+        self.assertEqual(expected_value,check_page)
+
+    def test_sites_pages(self):
+        site_page = self.ikea_scrapper.site_pages_links(xpath_category='//ul[@class="hnf-header__nav__main"]' ,item_cat_tag='li')
+        expected_value = [1,2,3,4]
+        print(len(site_page))
+        self.assertEqual(len(expected_value),len(site_page))
+
+
+    def test_get_webpages_links(self):
+        print(" CHECKING AVAILABLE LINKS")
+        sites_subpages =self.ikea_scrapper.site_pages_links(xpath_category='//ul[@class="hnf-header__nav__main"]' ,item_cat_tag='li')
+        available_links = self.ikea_scrapper.get_webpages_links(sites_subpages)
+        expect_value = [1,2,3,4]
+        print(len(available_links))
+        self.assertEqual(len(expect_value), len(available_links))
+     
+    def test_download_images(self):
+       check_download = self.ikea_scrapper.download_product_images(product_img_url='https://www.ikea.com/gb/en/images/products/friheten-corner-sofa-bed-with-storage-skiftebo-dark-grey__0175610_pe328883_s5.jpg?f=xxs',
+       image_path='test_folder/img.jpg')
+       expected_result = 'test_folder/img.jpg'
+       print("File exists"+ expected_result)
+       self.assertEqual(expected_result,check_download)
+
+In the test_scraper file we defined necessary test methods to test the functionality of the methods of the scrapper class.
+            
+
+
+
+
 
 
 
