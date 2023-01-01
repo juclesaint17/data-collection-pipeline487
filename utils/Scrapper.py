@@ -17,17 +17,35 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.chrome.service import Service as ChromeService
 from typing import List
 from uuid import uuid4
 from datetime import datetime
+from selenium.webdriver.chrome.options import Options
+
+
 
 
 
 class Scrapper:
 
     def __init__(self, url: str = 'https://www.ikea.co.uk/'):
-        self.driver = driver = webdriver.Chrome(ChromeDriverManager().install())
+
+        options = webdriver.ChromeOptions()
+        options.add_argument("--headless")
+        options.add_argument("window-size=1920,1080")
+        options.add_argument("start-maximized")
+        options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/105.0.0.0 Safari/537.36')
+        options.add_argument('--no-sandbox')
+        options.add_argument("disable-dev-shm-usage")
+        options.add_argument('--disable-gpu')
+        options.add_argument('user-agent=fake-useragent')
+    
+        self.driver = webdriver.Chrome('/usr/bin/chromedriver', chrome_options=options)
         self.driver.get(url)
+        print("Headless mode")
+
+
 
     def select_product(self, xpath: str):
         '''
@@ -44,7 +62,7 @@ class Scrapper:
 
     def search_product(self, product_name: str, xpath: str):
         '''
-        Search product by usibg the webpage search box
+        Search product by using the webpage search box
 
         Parameters
         -------------
@@ -63,7 +81,7 @@ class Scrapper:
 
     def accept_cookies(self, xpath: str = '//button[@id="onetrust-accept-btn-handler"]'):
         '''
-        Click automatically the "Accept cookies button inthe website"
+        Click automatically the "Accept cookies button"
 
         Params
         ----------
@@ -91,6 +109,7 @@ class Scrapper:
 
         return link
 
+
     def get_webpages_links(self,page_xpath):
     
         '''
@@ -110,11 +129,35 @@ class Scrapper:
 
         print(links_list)
         return links_list
+
+
     
+    def get_room_products_links(self,room_xpath:str, tag_xpath:str):
+
+        '''
+        Collect sub links from a  given Ikea room
+
+        room_xpath: the xpath of the room
+        tag_xpath: the room tag to retrieve the sublinks
+
+        Return:
+        return the list of sub pages of the room
+        '''
+
+        room_path = self.driver.find_element(By.XPATH, room_xpath)
+        room_links = room_path.find_elements(By.TAG_NAME, tag_xpath)
+        lists= []
+        for link in room_links:
+            links_list = link.get_attribute('href')
+            lists.append(links_list)
+        print("---- LIST OF AVAILABLE PRODUCTS TO COLLECT DATA-------")
+        print(lists)
+        return lists
 
     
 
     def download_product_images(self,product_img_url, image_path):
+
         '''
         Function to download images in a webpage and save it to a local machine
         Parameters:
@@ -132,13 +175,10 @@ class Scrapper:
         print(image_path)
         return image_path
 
-        
-            
-
-        
 
 
     def create_directory(self,dir_path: str,folder_name):
+
         '''
         Create a directory in a given file path
 
@@ -148,11 +188,12 @@ class Scrapper:
 
         folder_name: the name of the folder to be created
         '''
+
         file_name = os.path.join(dir_path, folder_name)
         if not os.path.exists(file_name):
 
             os.mkdir(file_name)
-            print("\tFOLDER CREATED")
+            print("\tFOLDER {}, CREATED".format(folder_name.upper()))
             print("")
         else:
             print("FOLDER ALREADY EXISTS")
@@ -222,15 +263,10 @@ class Scrapper:
         item_category = containers.find_elements(By.XPATH, item_cat_tag)
         
         return item_category
-            
-
-    
-        
+             
 
 class IkeaScrapper(Scrapper):
     
-
-
     # A method to search available product in the Ikea site
     def search_product_category(self):
         '''
@@ -268,19 +304,7 @@ class IkeaScrapper(Scrapper):
         print("\t---------------------- IKEA AVAILABLE NAVIGATION PAGES LINKS----------------------")
         self.get_webpages_links(site_nav_links)
 
-        
-    # Display the available Ikea products links
-    def display_Ikea_products_links(self):
-        '''
-        Display Ikea products links pages
-        '''
     
-        products_site_link = self.site_pages_links(xpath_category='//ul[@data-tracking-label="products"]' ,item_cat_tag='li')
-        print("")
-        print("\t----------------IKEA PRODUCTS LIST---------------------------------------")
-        self.get_webpages_links(products_site_link)
-        
-        
 
     def close_dialog_windows(self, dialog_x_path: str ='/html/body/div[5]/div/div[1]/div/div/div[2]/div[2]/button/span'):
 
@@ -305,6 +329,9 @@ class IkeaScrapper(Scrapper):
         image_path: the path of images sources
         image_source: the source link of the image
 
+        Return:
+        return the list of images links available on each page
+
         '''
 
         images_link = self.site_pages_links(image_path, image_tag)
@@ -325,6 +352,26 @@ class IkeaScrapper(Scrapper):
     
 
         return images_list
+
+    
+    def get_and_visit_link(self,page_links:list):
+
+        '''
+        Get link of the webpage and display it.
+
+        Parameters:
+        -------------------
+        page_links: List of links to display
+
+        Return:
+        Return webpage link
+        '''
+        
+        for link in page_links:
+            self.driver.get(link)
+            print(link)
+
+        return page_links
 
 
 
@@ -375,6 +422,7 @@ class IkeaScrapper(Scrapper):
 
     def __generate_products_frame(self, products_dict: dict):
             product_frame = pd.DataFrame()
+            products_data = []
             count = 1
 
             for product_index in range(len(products_dict['Product Code'])):
@@ -388,7 +436,6 @@ class IkeaScrapper(Scrapper):
 
                 }
                 count+=1
-            
                 product_frame = product_frame.append(product_dict, ignore_index=True) 
                 product_file_data = str(product_dict['Product ID'])
             return (product_frame, product_file_data, product_dict,count)
@@ -485,27 +532,18 @@ class Ikea_Furniture(IkeaScrapper):
             
             print("----------------------------------------------------PRODUCT NUMBER:{} ------------------------------------------".format(count))
             print("")
-            print("======================================== PRODUCT URL LINK =====================================================================")
-                #time.sleep(1)
-            #print("\t",link)
+            print("======================================== PRODUCT URL LINK ===========================================================")
             print("--------------------------------------------------------------------------------------------------------------------------------")
 
             return count
 
+
                                                
         def __display_ikea_rooms_links(self,links_xpath:str,tag_xpath:str):
-           
-           
-            rooms_categories =self.site_pages_links(links_xpath, tag_xpath)
-            product_lists= []
-            for product in rooms_categories:
 
-                product_link = product.get_attribute('href')
-                product_lists.append(product_link)
-            print("--------------------------------------\tROOM PRODUCTS LINKS--------------------------")
-            print("")
-            print(product_lists)
-            return product_lists
+            product_list =self.get_room_products_links(room_xpath= links_xpath,tag_xpath=tag_xpath)
+
+            return product_list
 
 
         def get_and_store_product_data(
@@ -517,7 +555,7 @@ class Ikea_Furniture(IkeaScrapper):
             ):
 
             '''
-            Display Ikea page links and collect data
+            Display Ikea page links and collect data for each page
             
             Parameters:
             ------------------
@@ -546,49 +584,45 @@ class Ikea_Furniture(IkeaScrapper):
                     pass
             
         # collect IKEA  rooms products data
-        def collect_ikea_rooms_product_data(self):
+        def __display_ikea_rooms(self):
             '''
-            Scrappe data from all Ikea rooms.
+            Display all Ikea rooms links.
+
+            Return:
+            Return the list of all Ikeas products rooms.
             
             '''
-            self.display_Ikea_products_links()
-            self.navigate_Ikea_rooms_pages(room_xpath='//*[@data-pub-id="6f52285d-c220-11ec-a3dd-0948e2821b2e"]')
+            products_site_link = self.site_pages_links(xpath_category='//ul[@data-tracking-label="rooms"]' ,item_cat_tag='./li')
             print("")
-            self.get_and_store_product_data(
-                link_xpath='//*[@id="5a386581-e41e-11ec-aa30-f1ff1fc0055d"]/div/div/div[1]/nav',
-            tag_path='a',
-            xpath_category='//div[@class="plp-product-list__products"]',
-            tag_xpath='./div'
-            )
-
-            print("LIVING ROOM PRODUCT SUCCEFULLY COLLECTED")
-            #time.sleep(1)
-            #self.navigate_Ikea_rooms_pages(room_xpath='//*[@data-pub-id="90651450-d113-11ec-91f8-9f2328d7da79"]')
+            print("\t--------------------IKEA ROOMS LIST---------------------------------------")
+            all_ikea_rooms = self.get_webpages_links(products_site_link)
             
+            return all_ikea_rooms
 
+        def collect_ikea_rooms_data(self):
+            
+            rooms = self.__display_ikea_rooms()
+            time.sleep(1)
 
-            #self.visit_product_page(prod_xpath='//*[@data-pub-id="90651450-d113-11ec-91f8-9f2328d7da79"]')
-            #self.close_dialog_windows()
-        
+            bedroom = rooms[0]
+            print("----\t-------SCRAPPING {} data...----------------".format(bedroom))
+            self.driver.get(bedroom)
+            self.get_and_store_product_data(link_xpath='//*[@id="45e221e0-357b-11ec-a8f6-0b949a082dfb"]/div',tag_path='a',
+            xpath_category='//div[@class="plp-product-list__products"]',tag_xpath='./div')
+            
+            time.sleep(2)
+            print("")
+            
+            
+            living_room = rooms[1]
+            print("\t-----------------SCRAPPING {} data-------------------".format(living_room))
+            self.driver.get(living_room)
+            time.sleep(1)
+            self.get_and_store_product_data(link_xpath='//*[@id="5a386581-e41e-11ec-aa30-f1ff1fc0055d"]/div/div/div[1]/nav',tag_path='a',
+            xpath_category='//div[@class="plp-product-list__products"]',tag_xpath='./div')
+            
+            print("------DATA SUCCESSFULLY COLLECTED")
 
-            #self.visit_product_page(prod_xpath='//*[@data-pub-id="6f52285e-c220-11ec-a3dd-0948e2821b2e"]')
-            #self.close_dialog_windows()
-
-            #self.accept_cookies()
-            #self.visit_product_page(prod_xpath='//*[@data-pub-id="6f52285f-c220-11ec-a3dd-0948e2821b2e"]')
-            #self.close_dialog_windows()
-  
-            #self.visit_product_page(prod_xpath='//*[@data-pub-id="6f522860-c220-11ec-a3dd-0948e2821b2e"]')
-            #self.close_dialog_windows()
-
-       
-            #self.visit_product_page(prod_xpath='//*[@data-pub-id="6f522861-c220-11ec-a3dd-0948e2821b2e"]')
-            #self.close_dialog_windows()
-
-            #self.visit_product_page(prod_xpath='//*[@data-pub-id="6f522862-c220-11ec-a3dd-0948e2821b2e"]')
-            #self.close_dialog_windows()
-
-        
 
 
 

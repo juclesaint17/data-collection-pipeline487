@@ -9,6 +9,7 @@ class ScrapperTestCase(unittest.TestCase):
         self.ikea_scrapper = Scrapper()
         
 
+
     
     def test_folder_creation(self):
         print("CHECKING FOLDER CREATION")
