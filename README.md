@@ -2,7 +2,7 @@
 ## Project description
 
 
-The Aim of this project is to build a software application that will extract information from a given website and store it in a database by using python programming language.To extract information for the website we use Selenium and webdriver.
+The Aim of this project is to build a software application that will extract informations from a website and store them into a file locally by using python programming language.To extract informations for the website we will use Selenium and webdriver.
 
 ### Milestone 1:
 ---
@@ -16,13 +16,13 @@ The Aim of this project is to build a software application that will extract inf
 
 ### Milestone 2:
 ---
-After setting up the repos to GitHub,the next step is the selection of the webpage category that will be build to collect data from. For this project Ecommerce website catagory is selected to develop  the application that will scrappe the data and store it to the database for processing. Ikea Ecommerce website will be used to test the functionnality of the application.
+After setting up the repos to GitHub,the next step is the selection of the webpage category that will be use to collect data from. For this project, Ecommerce website catagory is selected to develop  the application that will scrappe the data and store them into a local file for processing. Ikea Ecommerce website will be used to test the functionnality of the application.
 
 ### Milestone 3:
 ---
 - VS Code an integrated development environment is used to develop computer programs and websites and,it is used to our project to develop our pipeline program. From the folder created in the machine file system, we launch VS code inside the directory to create prototype that will allow us to retrieve every single page for the website.
-We create a class file name "Scrapper".
-Scrapper class contains many methods that will allow us to navigate to different pages in the website and collect data from each pages.
+We create a class file named "Scrapper".
+Scrapper class contains many methods that will allow us to navigate to different pages in the website and collect data from each page.
 1. class Scrapper
 > class Scrapper:
 
@@ -170,7 +170,7 @@ A powerfull method for this class Scrapper is:
         ''' 
         user_click = self.driver.find_element(By.XPATH, xpath)
         user_click.click()
-This method finds a webpage by it xpath and click on it automatically, and most of others methods in the Scrapper class implement this function to perform some of their operations.
+This method finds a webpage by xpath and click on it automatically, and most of others methods in the Scrapper class implement this function to perform some of their operations.
 
 - Scrapper class for this project is the parent class, and others classes will inherit from it methods.
 
@@ -293,7 +293,7 @@ This file is used to test the functionality of our project.
 Inside the main.py file, we import the Scrapper class from the utils folder and assign it to a variable call target, and call the accept_cookies() method from the Scrapper class to test the functionality of each method inside the class.
 
 ## Milestone 4:
-In this milestone we create and define functions tor retrieve products data and images from a single details page.As each page of Ikea website contains multiple webpages links for each product,we define a function to loop over all the links of the page and collect data and images for all the products available for the page.
+In this milestone we create and define functions to retrieve products data and images from a single details page.As each page of Ikea website contains multiple webpages links for each product,we define a function to loop over all the links of the page and collect data and images for all the products available for the page.
 The function below download images from the pages and store them in a file.
 
 
@@ -363,8 +363,9 @@ To collect data from the pages we define the function as shows below to loop thr
 
 
 
-## Milestone 6:
-After implementing classes and methods to run the software,we create a test_scraper python file to test the functionality of the methods created.
+## Milestone 5:
+After implementing classes and methods to run the software,we create a test_scraper python file to test the functionality of public methods created.
+> testing public methods screenshots
 
      
 
@@ -417,8 +418,92 @@ After implementing classes and methods to run the software,we create a test_scra
        print("File exists"+ expected_result)
        self.assertEqual(expected_result,check_download)
 
-In the test_scraper file we defined necessary test methods to test the functionality of the methods of the scrapper class.
-            
+In the test_scraper file we defined necessary tests methods to test the functionality of the methods of the scrapper class.
+##Milestone 6:
+
+After testing public functions of the project,an additional flag 'headless mode' was add to the webdrivers options to allow runnimg  the project without user graphical interface within the Docker container.After successfull implementation of the headless flag,we created a dockerfile to build the image of the scrapper project locally, test the image functionality and push the Docker image to Docker Hub.
+
+##Milestone 7:
+In this milestone we set up a CI/CD pipeline for the scrapper Docker image created in milestone 6.
+First we set up GitHub secrets that contains credentials to push the scrapper image to a Docker Hub account and we create specific Git Hub actions to push the image to the main branch of the repository,and push the image to the Dockerhub account.
+The screenshot below shows the Dockerfile created and the Git Hub actions implemented for the project.
+> IkeaScrapper Dockerfile
+
+
+ 
+    FROM python:latest
+
+    RUN apt -f install -y
+
+    RUN apt-get install -y wget
+
+    RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add -
+
+    RUN sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google-chrome.list'
+    RUN apt-get -y update
+    RUN apt-get install -y google-chrome-stable
+
+    RUN apt-get -y update
+
+
+    RUN wget -O /tmp/chromedriver.zip http://chromedriver.storage.googleapis.com/`curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE`/chromedriver_linux64.zip
+
+    RUN apt-get install -yqq unzip
+
+    RUN unzip /tmp/chromedriver.zip chromedriver -d /usr/local/bin/
+
+
+    WORKDIR  /home/juc-lesaint/Desktop/data-collection-pipeline487/
+
+    
+    COPY . .
+
+    #RUN pip install -r requirements.txt
+    RUN  pip install -e .
+
+
+    ENTRYPOINT ["python3", "main.py"]
+
+-----------------------
+> IkeaScrapper Actions file
+
+    name: Ikea Scrapper ci
+
+    on:
+    push:
+        branches:
+        - "main"
+    pull_request:
+        branches:
+        - "main"
+
+    jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+        -
+            name: Checkout
+            uses: actions/checkout@v3
+        -
+            name: Login to Docker Hub
+            uses: docker/login-action@v2
+            with:
+            username: ${{ secrets.DOCKER_HUB_JUCLART }}
+            password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+        -
+            name: Set up Docker Buildx
+            uses: docker/setup-buildx-action@v2
+        -
+            name: Build and push
+            uses: docker/build-push-action@v3
+            with:
+            context: .
+            file: ./Dockerfile
+            push: true
+            tags: ${{ secrets.DOCKER_HUB_JUCLART }}/ikeascrapper:latest
+
+
+                
 
 
 
